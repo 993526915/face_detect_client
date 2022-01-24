@@ -1,0 +1,62 @@
+{
+    "imgBuff":5,
+    "baiduAPI":
+    {
+        "app_id":"25445250",
+        "api_key" : "1y1TkbKtV489MF3cc4eXNG3N",
+        "secret_key" : "CqlAt2OUHaUSI6X5nxag7gjAGv2FGiN2",
+        "group_id_list" : "number1",
+        "image_type" : "BASE64",
+        	 	"access_token":"24.71498e2478b69d01dc6a09aeb5a84823.2592000.1643539230.282335-25445250",
+        "request_url_add" : "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/add",
+        "request_url_update" : "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/update",
+        "request_url_get_information" : "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/get",
+        "request_url_search_group_id" :"https://aip.baidubce.com/rest/2.0/face/v3/faceset/group/getlist",
+        "request_url_serach_user_id" : "https://aip.baidubce.com/rest/2.0/face/v3/faceset/group/getusers",
+        "request_url_delete_group" : "https://aip.baidubce.com/rest/2.0/face/v3/faceset/group/delete",
+        "request_url_delete_user" : "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/delete"
+    },
+    "cameraParams":
+    {
+        "width":640 ,    // 图片宽
+        "height":480 ,   //图片高
+        "aoiX":0,
+        "aoiY":0,
+        "MyAcquisitionFrameRate" : 600.00,     //帧率
+        "MyTriggerMode" : 0,      //0是关闭模式1是开启模式
+        "MyExposureTime" : 8000.0,                                  //设置曝光度
+        "MyGainAuto" : 0 ,                                             // 关闭
+        "MyEnumeration" : 0,                                       //关闭自动增益
+        "MyGain" : 0.0,                                              //自动增益设定值
+        "MyGammaEnable" : 1,                                       //关闭伽马矫正
+        "MyGamma" : 0.0,                                              //伽马矫正设定值
+        "MySharpnessEnable" : 0,                                    //清晰度使能
+        "MySharpness" :0,                                    //清晰度设定值
+        "MyHueEnable" : 0,                                          //设置色相
+        "MyHue" : 0,                                          //色相值设定
+        "MySaturationEnable" : 0,                                   //饱和度使能
+        "MySaturation" : 0,                                  //饱和度设定
+        //相机内参
+        "fx" :1351.6,
+        "fy" : 1355.0,
+        "u0" : 344.9,
+        "v0" : 239.8,
+        //镜头畸变参数
+        "k1" : -0.1274,
+        "k2" : 3.5841,
+        "p1" : 0.0,
+        "p2" : 0,
+        "k3" : 0
+    },
+    "mysql":
+    {
+    	"HostIp":"127.0.0.1",
+    	"HostPort":3306,
+    	"DataBaseName":"face_detect",
+    	"UserName":"root",
+    	"PassWord":"991214",
+    	"DBPoolName":"wzx",
+    	"DBPoolMaxNum":4
+    }
+}
+
