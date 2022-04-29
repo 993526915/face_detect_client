@@ -6,14 +6,28 @@ int BUFFER;
 static volatile unsigned int proIdx = 0;    //生产id
 static volatile unsigned int consIdx = 0; //消费id
 
-proComImg::proComImg(shared_ptr<faceDetect> faceDetect,shared_ptr<initParams> params)
+proComImg::proComImg()
 {
     qRegisterMetaType<Mat>("Mat");
     m_timeStamp = make_shared<CELLTimestamp>();
-    m_faceDetect = faceDetect;
-    m_isdetect = false;
+    m_isdetect = true;
+    m_isproduce =true;
+    m_iscomsume = true;
     m_isFindFace = false;
-    m_baiduParams =params->getBaiduAPIParams();
+    std::string faceCascadeFilename = "/home/wzx/face_detect_client/faceDetect/haarcascade_frontalface_default.xml";
+    m_faceDetector = make_shared<CascadeClassifier>();
+    //友好错误信息提示
+    try{
+        //readJson();
+        m_faceDetector->load(faceCascadeFilename);
+    }
+    catch (cv::Exception e){}
+    if (m_faceDetector->empty())
+    {
+        std::cerr << "脸部检测器不能加载 (";
+        std::cerr << faceCascadeFilename << ")!" << std::endl;
+        exit(1);
+    }
 #ifdef COMPUTERCAMERA
     cap.open(0);
 #else
@@ -24,11 +38,47 @@ proComImg::proComImg(shared_ptr<faceDetect> faceDetect,shared_ptr<initParams> pa
     readJson();
 
 }
+vector<Rect> proComImg::findFace(Mat src)
+{
+    //人脸检测只试用于灰度图像
+    Mat gray;
+    //Pic2Gray(src, gray);
+    //直方图均匀化(改善图像的对比度和亮度)
+    //Mat equalizedImg;
+    //equalizeHist(gray, equalizedImg);
+    int flags = CASCADE_SCALE_IMAGE;	//检测多个人
+    Size minFeatureSize(100, 100);
+    float searchScaleFactor = 1.3f;
+    int minNeighbors = 2;
+    std::vector<Rect> faces;
+    m_faceDetector->detectMultiScale(src, faces, searchScaleFactor, minNeighbors, flags, minFeatureSize);
+    //画矩形框
+    cv::Mat face;
+    std::vector<Rect> res;
+    cv::Point text_lb;
+    for (size_t i = 0; i < faces.size(); i++)
+    {
+        if (faces[i].height > 0 && faces[i].width > 0)
+        {
+//            /****************画方框***************/
+//            face = gray(faces[i]);
+//            text_lb = cv::Point(faces[i].x, faces[i].y);
+//            cv::rectangle(equalizedImg, faces[i], cv::Scalar(255, 0, 0), 2, 8, 0);
+//            cv::rectangle(gray, faces[i], cv::Scalar(255, 0, 0), 2, 8, 0);
+//            cv::rectangle(src, faces[i], cv::Scalar(255, 0, 0), 2, 8, 0);
+//            /****************画方框完成***************/
+            if(faces[i].width%4 ==0 && faces[i].height%4==0)
+                res.push_back(faces[i]);
+        }
+    }
+    return res;
+}
+
 void proComImg::readJson()
 {
     Json::Value root;
     Json::Reader reader;
-    std::ifstream ifs("/home/wzx/detect/params.json");
+    std::ifstream ifs("/home/wzx/face_detect_client/params.json");
     if(!reader.parse(ifs, root)){
        qDebug() << "Json解析错误---------proComImg::readJson()" << endl;
     }
@@ -40,7 +90,7 @@ void proComImg::readJson()
 void proComImg::produce()
 {
     cv::Mat src;
-    while(1)
+    while(m_isproduce)
     {
        Mat src ;
 #ifdef COMPUTERCAMERA
@@ -51,7 +101,10 @@ void proComImg::produce()
        }
        Mat inputSrc;
        cap >> inputSrc;
-       resize(inputSrc,src,Size(640,480));
+       if(!inputSrc.empty())
+            resize(inputSrc,src,Size(492,369));
+       else
+           qDebug() << "no picture!" << endl;
 #else
        int c = m_camera->getImage(src,true);
 #endif
@@ -67,17 +120,19 @@ void proComImg::produce()
            break;
        }
     }
-
+    if(cap.isOpened())
+        cap.release();
 }
 void proComImg::comsume()
 {
-    while(1)
+    while(m_iscomsume)
     {
         while(consIdx>=proIdx);
         unsigned int ImageIndex = proIdx-1;              //处理最新图像
         Mat src = m_imgBuffer[ImageIndex % BUFFER];
         m_mutex.lock();
-        vector<Rect> res = m_faceDetect->findFace(src);
+
+        vector<Rect> res = findFace(src);
         if(res.size() != 0) m_isFindFace = true;
         else
         {
@@ -87,48 +142,73 @@ void proComImg::comsume()
         if(res.size()>0)
         {
             //Rect temp(res[0].x/1.2,res[0].y/1.2,res[0].width*1.3,res[0].height*1.3);
-            Rect temp(res[0].x/1.1,res[0].y/1.1,res[0].width*1.1,res[0].height*1.1);
-            cv::rectangle(src, temp, cv::Scalar(0, 255, 255), 2, 8, 0);
+
+            Rect temp(res[0].x,res[0].y,res[0].width,res[0].height);
             if(temp.area() > 200)
                  m_detect.push_back(src(temp));
+            cv::rectangle(src, temp, cv::Scalar(0, 255, 255), 2, 8, 0);
+            usleep(1);
+
         }
         m_mutex.unlock();
         emit getImage(src);
         consIdx = ImageIndex+1;
-        waitkey(1);
     }
 }
 
-void proComImg::detect()
+void proComImg::detect(string classnum,string account,int fd)
 {
-    aip::Face client(m_baiduParams->app_id, m_baiduParams->api_key, m_baiduParams->secret_key);
-    Json::Value result;
-    while(1)
+    while(m_isdetect)
     {
-        while(m_isdetect)
+        if(m_timeStamp->getElapsedSecond() >= 1 && m_isFindFace == true)
         {
-            if(m_timeStamp->getElapsedSecond() >= 1 && m_isFindFace == true)
-            {
-                m_mutex.lock();
-                Mat detectSrc = m_detect[0];
-                m_detect.clear();
-                m_mutex.unlock();
+            m_mutex.lock();
+            Mat detectSrc;
+            detectSrc = m_detect[0];
+            m_detect.clear();
+            m_mutex.unlock();
+            imwrite("/home/wzx/b.jpg",detectSrc);
 
-                tuple<QString,QString> detectRes = m_faceDetect->detectOneFace(detectSrc);
-                if(std::get<0>(detectRes).isEmpty() || std::get<1>(detectRes).isEmpty()) continue;
-                qDebug() << "group_id : " <<std::get<0>(detectRes)<< "user_id : " <<std::get<1>(detectRes) << endl;
-                emit detectFace(std::get<0>(detectRes),std::get<1>(detectRes));
-                m_timeStamp->update();
+            detectSrc = imread("/home/wzx/b.jpg");
+            detectFaceData * detectFace = new detectFaceData;
+            detectFace->m_cols = detectSrc.cols;
+            detectFace->m_rows = detectSrc.rows;
+            detectFace->m_type = detectSrc.type();
+
+            memcpy(detectFace->m_facedata,detectSrc.data, detectSrc.cols * detectSrc.rows *detectSrc.elemSize());
+            memcpy(detectFace->m_classnum,classnum.data(),classnum.length());
+            memcpy(detectFace->m_account,account.data(),account.length());
+            SockUtil::co_write(fd,detectFace,detectFace->m_dataLength);
+
+
+            detectFaceResData addFaceRes;
+            SockUtil::co_read(fd,&addFaceRes,addFaceRes.m_dataLength);
+            if(addFaceRes.res==DETECT_SUCCESS)
+            {
+                qDebug() << "DETECT_SUCCESS";
+                emit faceSuccess();
             }
+            else
+            {
+                qDebug() << "DETECT_NOUSER";
+                emit faceFailed();
+            }
+            m_timeStamp->update();
         }
     }
 }
 
-
-
 void proComImg::setIsDetect(bool set)
 {
     m_isdetect = set;
+}
+void proComImg::setIsProduce(bool set)
+{
+    m_isproduce = set;
+}
+void proComImg::setIsComsume(bool set)
+{
+    m_iscomsume = set;
 }
 
 bool proComImg::getIsDetect()
@@ -145,7 +225,7 @@ comsumePro::comsumePro(shared_ptr<proComImg> p)
             [&]()
             {
                 QEventLoop loop;
-                QTimer::singleShot(10, &loop, SLOT(quit()));
+                QTimer::singleShot(50, &loop, SLOT(quit()));
                 loop.exec();
 
             }
@@ -161,19 +241,32 @@ producePro::producePro(shared_ptr<proComImg> p)
 {
     m_produce = p;
 }
+
 void producePro::run()
 {
     m_produce->produce();
 }
 
-detectPro::detectPro(shared_ptr<proComImg> p)
+detectPro::detectPro(shared_ptr<proComImg> p,shared_ptr<int> fd,string classnum,string account)
 {
     m_detect = p;
+    m_sockFd = fd;
+    m_classnum =classnum;
+    m_account = account;
 }
+
 void detectPro::run()
 {
-    m_detect->detect();
+    m_detect->detect(m_classnum,m_account,*m_sockFd.get());
 }
+//socketPro::socketPro(shared_ptr<proComImg> p)
+//{
+//    m_socket = p;
+//}
+//void socketPro::run()
+//{
+//    m_socket->request();
+//}
 
 PrintQPixMap::PrintQPixMap(shared_ptr<proComImg> p)
 {

@@ -8,6 +8,7 @@
 #include <map>
 #include <stdint.h>
 #include <mysql/mysql.h>
+#include"initparams.h"
 #define STRING_SIZE 100
 #define MAX_ESCAPE_STRING_LEN	10240
 class CDBConn;
@@ -96,13 +97,7 @@ private:
 
 class CDBPool {	// 只是负责管理连接CDBConn，真正干活的是CDBConn
 public:
-	CDBPool() {}
-	CDBPool(const char* pool_name, const char* db_server_ip, uint16_t db_server_port,
-			const char* username, const char* password, const char* db_name, 
-			int max_conn_cnt);
-	virtual 	~CDBPool();
-
-	int 		Init();		// 连接数据库，创建连接
+	static CDBPool& GetInstance();
 	CDBConn* 	GetDBConn(const int timeout_ms = 0);	// 获取连接资源
 	void 		RelDBConn(CDBConn* pConn);	// 归还连接资源
 
@@ -112,7 +107,16 @@ public:
 	const char* GetUsername() { return m_username.c_str(); }
 	const char* GetPasswrod() { return m_password.c_str(); }
 	const char* GetDBName() { return m_db_name.c_str(); }
+
+
 private:
+	CDBPool();
+	~CDBPool();
+	void _SetCDBPoolParams(const char* pool_name, const char* db_server_ip, uint16_t db_server_port,
+		const char* username, const char* password, const char* db_name, 
+		int max_conn_cnt);
+	int _Init();		// 连接数据库，创建连接
+
 	string 		m_pool_name;	// 连接池名称
 	string 		m_db_server_ip;	// 数据库ip
 	uint16_t	m_db_server_port; // 数据库端口
@@ -128,6 +132,7 @@ private:
     std::condition_variable m_cond_var;
 	bool m_abort_request = false;
 	// CThreadNotify	m_free_notify;	// 信号量
+
 };
 
 #endif /* DBPOOL_H_ */

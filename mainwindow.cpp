@@ -11,12 +11,13 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
     m_initParams=make_shared<initParams>();
-    m_initParams->init("/home/wzx/detect/params.json");    
-    m_faceDetect = make_shared<faceDetect>(m_db,m_initParams);
-    m_proComImg = make_shared<proComImg>(m_faceDetect,m_initParams);
+    m_initParams->init("/home/wzx/face_detect_client/params.json");
+    m_faceDetect = make_shared<faceDetect>(m_initParams);
+    m_proComImg = make_shared<proComImg>();
     m_comThread = make_shared<comsumePro>(m_proComImg);
     m_proThread = make_shared<producePro>(m_proComImg);
-    m_detectThread = make_shared<detectPro>(m_proComImg);
+    //m_detectThread = make_shared<detectPro>(m_proComImg);
+
     m_printPixMap = make_shared<PrintQPixMap>(m_proComImg);
     //图片获取
     void(proComImg::*image)(Mat) = &proComImg::getImage;
@@ -27,14 +28,16 @@ MainWindow::MainWindow(QWidget *parent) :
     //识别显示信息
     void(proComImg::*showeDetectFaceInfo)(QString,QString) = &proComImg::detectFace;
     connect(m_proComImg.get(),showeDetectFaceInfo,this,&MainWindow::showDetectFaceInfo);
+
     m_comThread->start();
     m_proThread->start();
-    m_detectThread->start();
+   // m_detectThread->start();
 
     initDataBase();
 
     ui->setupUi(this);
     ui->pushButton_right_wrong->setVisible(false);
+    initSocket();
     initTreeWidget();
 
     //单击显示信息
@@ -53,30 +56,70 @@ void MainWindow::paintEvent(QPaintEvent *)
 void MainWindow::initTreeWidget()
 {
     ui->treeWidget->clear();
+    getGroupData *groupData = new getGroupData;
+    groupData->m_cmd = GETGROUP;
+//    Json::Value root;
+    //根节点属性
+//    root["cmd"] = Json::Value(GETGROUP);
+//    root["start"]= Json::Value("0");
+//    root["length"] = Json::Value("100");
+//    string js =  root.toStyledString();
+    SockUtil::co_write(*m_socketFd.get(),(const char *)groupData,groupData->m_dataLength);
+    char ret[1024];
+    memset(ret,0,sizeof(ret));
+    SockUtil::co_read(*m_socketFd.get(),ret,sizeof(ret));
+    Json::Reader reader;
     Json::Value json_group_res;
-    m_faceDetect->groupGetlist(json_group_res);
-    cout << json_group_res << "------------groupGetlist(json_group_res,0,100)"<<endl;
-    Json::Value group_id_list = json_group_res["result"]["group_id_list"];
-    QList<QTreeWidgetItem *> rootItem;
-    for(int i=0;i<group_id_list.size();i++)
+    string str = ret;
+    //从字符串中读取数据
+    if (reader.parse(str, json_group_res))
     {
-        //QThread::msleep(500);
-        QTreeWidgetItem *groupItem = new QTreeWidgetItem(ui->treeWidget,QStringList(QString(group_id_list[i].asString().c_str())));
-        Json::Value Json_user_res;
-        //qDebug() << group_id_list[i].asString().c_str() << endl;
-        m_faceDetect->groupGetusers(Json_user_res,group_id_list[i].asString());
-        cout << Json_user_res << "-------------groupGetusers(Json_user_res,group_id_list[i].asString())"<<endl;
-        Json::Value user_id_list = Json_user_res["result"]["user_id_list"];
-        for(int j=0;j<user_id_list.size();j++)
+
+        Json::Value group_id_list = json_group_res["result"]["group_id_list"];
+        QList<QTreeWidgetItem *> rootItem;
+        for(int i=0;i<group_id_list.size();i++)
         {
-            QTreeWidgetItem *userItem = new QTreeWidgetItem(groupItem,QStringList(QString(user_id_list[j].asString().c_str())));
-            groupItem->addChild(userItem);
+            QTreeWidgetItem *groupItem = new QTreeWidgetItem(ui->treeWidget,QStringList(QString(group_id_list[i].asString().c_str())));
+
+            getUserData *userData = new getUserData;
+            userData->m_cmd = GETUSER;
+            memcpy(userData->m_group_id,group_id_list[i].asCString(),sizeof(group_id_list[i].asCString()));
+            //userData->m_group_id = group_id_list[i].asCString();
+            SockUtil::co_write(*m_socketFd.get(),(const char *)userData,userData->m_dataLength);
+            memset(ret,0,sizeof(ret));
+            SockUtil::co_read(*m_socketFd.get(),ret,sizeof(ret));
+            str = ret;
+            Json::Value Json_user_res;
+            if (reader.parse(str, Json_user_res))
+            {
+                cout << Json_user_res << "-------------groupGetusers(Json_user_res,group_id_list[i].asString())"<<endl;
+                Json::Value user_id_list = Json_user_res["result"]["user_id_list"];
+                for(int j=0;j<user_id_list.size();j++)
+                {
+                    QTreeWidgetItem *userItem = new QTreeWidgetItem(groupItem,QStringList(QString(user_id_list[j].asString().c_str())));
+                    groupItem->addChild(userItem);
+                }
+                rootItem.append(groupItem);
+                ui->treeWidget->insertTopLevelItem(0,groupItem);
+            }
         }
-        rootItem.append(groupItem);
-        ui->treeWidget->insertTopLevelItem(0,groupItem);
     }
 }
-
+void MainWindow::initSocket()
+{
+    while(1)
+    {
+        int fd;
+        if (SockUtil::co_connect(fd,"127.0.0.1",8888) == -1) {
+            qDebug() << "Error connecting" ;
+            QThread::sleep(1);
+            continue;
+        }
+        m_socketFd = make_shared<int>(fd);
+        break;
+    }
+    qDebug() << "connecting********************************" ;
+}
 void MainWindow::initDataBase()
 {
     shared_ptr<mysqlParams> mysqlParams;
@@ -233,19 +276,19 @@ void MainWindow::on_detectFace_clicked()
 {
     if(m_proComImg->getIsDetect() == true)
     {
-        qDebug() << "turn true" << endl;
+        qDebug() << "turn false" << endl;
         m_proComImg->setIsDetect(false);
     }
     else if(m_proComImg->getIsDetect() == false)
     {
-        qDebug() << "turn false" << endl;
+        qDebug() << "turn true" << endl;
         m_proComImg->setIsDetect(true);
     }
 }
 
 void MainWindow::on_pushButton_add_user_clicked()
 {
-    addFace *addwidget = new addFace(m_db,m_faceDetect,m_CDBPool);
+    addFace *addwidget = new addFace(m_db,m_faceDetect,m_CDBPool,m_socketFd);
     void(addFace::*addFaceItems)(QString,QString) = &addFace::addTreeItems;
     connect(addwidget,addFaceItems,this,&MainWindow::addUser);
     addwidget->show();
@@ -283,22 +326,34 @@ void MainWindow::on_pushButton_delete_user_clicked()
                     }
                     else
                     {
+                        delUserData *delUser = new delUserData;
+                        delUser->m_cmd = DELUSER;
+                        memcpy(delUser->m_user_id,user_id->text(0).toStdString().c_str(),user_id->text(0).toStdString().length());
+                        memcpy(delUser->m_group_id,group_id->text(0).toStdString().c_str(),group_id->text(0).toStdString().length()); 
+                        SockUtil::co_write(*m_socketFd.get(),(const char *)delUser,delUser->m_dataLength);
+                        char ret[1024];
+                        memset(ret,0,sizeof(ret));
+                        SockUtil::co_read(*m_socketFd.get(),ret,sizeof(ret));
                         Json::Value json_res;
-                        m_faceDetect->userDelete(json_res,group_id->text(0).toStdString(),user_id->text(0).toStdString());
-                        if(json_res["error_code"].asInt()!= 0)
+                        string str = ret;
+                        Json::Reader reader;
+                        if (reader.parse(str, json_res))
                         {
-                            newConnect->Rollback();
-                            string res = "code :" + json_res["error_code"].asString() +"msg :" +json_res["error_msg"].asString();
-                            QMessageBox *message = new QMessageBox(
-                                        QMessageBox::NoIcon,
-                                    "调用信息", QString(res.c_str()),
-                                    QMessageBox::Yes, NULL);
-                            message->show();
-                        }
-                        else
-                        {
-                            selectItems[i]->parent()->removeChild(ui->treeWidget->currentItem());
-                            newConnect->Commit();
+                            if(json_res["error_code"].asInt()!= 0)
+                            {
+                                newConnect->Rollback();
+                                string res = "code :" + json_res["error_code"].asString() +"msg :" +json_res["error_msg"].asString();
+                                QMessageBox *message = new QMessageBox(
+                                            QMessageBox::NoIcon,
+                                        "调用信息", QString(res.c_str()),
+                                        QMessageBox::Yes, NULL);
+                                message->show();
+                            }
+                            else
+                            {
+                                selectItems[i]->parent()->removeChild(ui->treeWidget->currentItem());
+                                newConnect->Commit();
+                            }
                         }
                     }
                 }
@@ -364,38 +419,50 @@ void MainWindow::on_pushButton_delete_face_group_clicked()
                     }
                     else
                     {
+                        delGroupData *delGroup = new delGroupData;
+                        delGroup->m_cmd = DELGROUP;
+                        memcpy(delGroup->m_group_id,group_id->text(0).toStdString().c_str(),group_id->text(0).toStdString().length());
+                        SockUtil::co_write(*m_socketFd.get(),(const char *)delGroup,delGroup->m_dataLength);
+                        char ret[1024];
+                        memset(ret,0,sizeof(ret));
+                        SockUtil::co_read(*m_socketFd.get(),ret,sizeof(ret));
+                        Json::Reader reader;
                         Json::Value json_res;
-                        m_faceDetect->groupDelete(json_res,group_id->text(0).toStdString());
-                        if(json_res["error_code"].asInt()!= 0)
+                        string str = ret;
+                        //从字符串中读取数据
+                        if (reader.parse(str, json_res))
                         {
-                            newConnect->Rollback();
-                        }
-                        else
-                        {
-                            qDebug() << selectItems.size() << endl;
-                            int count = group_id->childCount();
-                            if(count==0)//没有子节点，直接删除
+                            qDebug() << QString(str.c_str());
+                            if(json_res["error_code"].asInt()!= 0)
                             {
+                                newConnect->Rollback();
+                            }
+                            else
+                            {
+                                qDebug() << selectItems.size() << endl;
+                                int count = group_id->childCount();
+                                if(count==0)//没有子节点，直接删除
+                                {
+                                    delete group_id;
+                                    return;
+                                }
+
+                                for(int i=0; i<count; i++)
+                                {
+                                    QTreeWidgetItem *childItem = group_id->child(i);//删除子节点
+                                    delete childItem;
+                                }
                                 delete group_id;
-                                return;
+                                newConnect->Commit();
+                                m_CDBPool->RelDBConn(newConnect);
                             }
-
-                            for(int i=0; i<count; i++)
-                            {
-                                QTreeWidgetItem *childItem = group_id->child(i);//删除子节点
-                                delete childItem;
-                            }
-                            delete group_id;
-                            newConnect->Commit();
-                            m_CDBPool->RelDBConn(newConnect);
+                            string res = "code :" + json_res["error_code"].asString() +"msg :" +json_res["error_msg"].asString();
+                            QMessageBox *message = new QMessageBox(
+                                        QMessageBox::NoIcon,
+                                    "调用信息", QString(res.c_str()),
+                                    QMessageBox::Yes, NULL);
+                            message->show();
                         }
-                        string res = "code :" + json_res["error_code"].asString() +"msg :" +json_res["error_msg"].asString();
-                        QMessageBox *message = new QMessageBox(
-                                    QMessageBox::NoIcon,
-                                "调用信息", QString(res.c_str()),
-                                QMessageBox::Yes, NULL);
-                        message->show();
-
                     }
                 }
             }
@@ -423,8 +490,8 @@ void MainWindow::showDetectFaceInfo(QString group_id,QString user_id)
     ui->comboBox_detect_quality->setEditText(QString::fromStdString(detect_quality));
     ui->label_image->setPixmap(photo);
     ui->pushButton_right_wrong->setVisible(true);
-//    ui->pushButton_right_wrong->setText("√");
-//    ui->pushButton_right_wrong->setStyleSheet("background:rgb(138, 226, 52)");
+    ui->pushButton_right_wrong->setText("√");
+    ui->pushButton_right_wrong->setStyleSheet("background:rgb(138, 226, 52)");
     QTreeWidgetItem *chooseItem;
     int num = ui->treeWidget->columnCount();
     for(int i=0;i<num;i++)

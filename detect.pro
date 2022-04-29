@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 QT       += core gui  sql widgets
-
+QT += network
 
 TARGET = detect
 TEMPLATE = app
@@ -21,65 +21,88 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 CONFIG += c++11
-INCLUDEPATH += /usr/local/opencv4/include \
-               /usr/local/opencv4/include/opencv4
+INCLUDEPATH += /usr/local/include \
+               /usr/local/include/opencv4
 
-LIBS += /usr/local/opencv4/lib/libopencv_*.so\
-        /home/wzx/detect/camera/lib/libGCBase_gcc421_v3_0.so\
-        /home/wzx/detect/camera/lib/libGenApi_gcc421_v3_0.so  \
-        /home/wzx/detect/camera/lib/libLog_gcc421_v3_0.so  \
-        /home/wzx/detect/camera/lib/liblog4cpp_gcc421_v3_0.so\
-        /home/wzx/detect/camera/lib/libMathParser_gcc421_v3_0.so  \
-        /home/wzx/detect/camera/lib/libMediaProcess.so  \
-        /home/wzx/detect/camera/lib/libMvCameraControl.so\
-        /home/wzx/detect/camera/lib/libMVGigEVisionSDK.so  \
-        /home/wzx/detect/camera/lib/libMVRender.so  \
-        /home/wzx/detect/camera/lib/libMvUsb3vTL.so \
-        /home/wzx/detect/camera/lib/libNodeMapData_gcc421_v3_0.so  \
-        /home/wzx/detect/camera/lib/libXmlParser_gcc421_v3_0.so
+LIBS += /usr/local/lib/libopencv_*.so\
+
 
 SOURCES += \
-    DBPool.cpp \
+    DBpool.cpp \
+    comwidget.cpp \
+    detectweight.cpp \
     initparams.cpp \
+    logindialog.cpp \
+    loginweight.cpp \
     main.cpp \
-    mainwindow.cpp \
-    camera/camera.cpp \
     procomimg.cpp \
-    faceDetect/facedetect.cpp \
-    addface.cpp
+    registor.cpp \
+    socktool.cpp \
+    userweight.cpp
 
 HEADERS += \
     DBpool.h \
+    comwidget.h \
+    detectweight.h \
     initparams.h \
-    mainwindow.h \
-    camera/camera.h\
-    camera/cam_inc/CameraParams.h \
-    camera/cam_inc/MvCameraControl.h \
-    camera/cam_inc/MvDeviceBase.h \
-    camera/cam_inc/MvErrorDefine.h \
-    camera/cam_inc/MvGigEDevice.h \
-    camera/cam_inc/MvInclude.h \
-    camera/cam_inc/MvUsb3VDevice.h \
-    camera/cam_inc/PixelType.h \
-    camera/cam_inc/TlFactory.h \
+    logindialog.h \
+    loginweight.h \
+    registor.h \
     timeStamp.h \
     procomimg.h \
-    faceDetect/base/utils.h \
-    faceDetect/facedetect.h \
-    faceDetect/face.h \
-    faceDetect/base/base.h \
-    faceDetect/base/base64.h \
-    faceDetect/base/http.h \
-    addface.h
+    socktool.h \
+    userweight.h
 
 
 FORMS += \
-        mainwindow.ui \
-    addface.ui
+    comwidget.ui \
+    detectweight.ui \
+    logindialog.ui \
+    loginweight.ui \
+    registor.ui \
+    userweight.ui
 
 
 
 DISTFILES += \
     faceDetect/haarcascade_frontalface_default.xml \
+    icon/Back.png \
+    icon/Me.png \
+    icon/More Circle.png \
+    icon/More Circle.png \
+    icon/close2.png \
+    icon/go.png \
     icon/image.png \
-    params.json
+    icon/login_Account.png \
+    icon/login_密码.png \
+    icon/minimum2.png \
+    icon/toRight.png \
+    icon/victoricon2.png \
+    icon/头像.png \
+    icon/摄像头.png \
+    icon/正确.png \
+    icon/错误.png \
+    params.json \
+    touxiang/Simpson.jpg \
+    touxiang/beizi.jpg \
+    touxiang/blownbear.jpg \
+    touxiang/dog.jpg \
+    touxiang/duolaameng.jpg \
+    touxiang/fenhongbao.jpg \
+    touxiang/girl.jpg \
+    touxiang/girl2.jpg \
+    touxiang/girl3.jpg \
+    touxiang/girl4.jpg \
+    touxiang/haimianbob.jpg \
+    touxiang/icebear.jpg \
+    touxiang/paidaxing.jpg \
+    touxiang/panda.jpg \
+    touxiang/pig.jpg \
+    touxiang/shuaya.jpg \
+    touxiang/tom.jpg \
+    touxiang/xiaowanzi.jpg \
+    touxiang/xiaoxin.jpg \
+    touxiang/yazi.jpg
+
+RESOURCES += \
+    resource.qrc

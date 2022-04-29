@@ -33,7 +33,7 @@ class faceDetect
 {
 
 public:
-    faceDetect(shared_ptr<QSqlDatabase> db,shared_ptr<initParams> params);
+    faceDetect(shared_ptr<initParams> params);
     void readJson();
     std::string Mat2Base64(const cv::Mat img, std::string imgType);
     vector<Rect> findFace(Mat src);
@@ -50,7 +50,7 @@ private:
     shared_ptr<CascadeClassifier> m_faceDetector;
     shared_ptr<aip::Face> m_client;
     shared_ptr<initParams> m_params;
-    shared_ptr<baiduAPIParams> m_baiduParams;
+
     shared_ptr<QSqlDatabase> m_db;
 
 

@@ -2,7 +2,6 @@
 
 #include "DBpool.h"
 #include <string.h>
-#include<QDebug>
 #define log_error printf
 #define log_warn printf
 #define log_info printf
@@ -371,11 +370,16 @@ CResultSet *CDBConn::ExecuteQuery(const char *sql_query)
 		return NULL;
 	}
 	// 返回结果
+
 	MYSQL_RES *res = mysql_store_result(m_mysql);	// 返回结果
 	if (!res)
 	{
-		log_error("mysql_store_result failed: %s\n", mysql_error(m_mysql));
-		return NULL;
+        if(mysql_field_count(m_mysql) != 0)
+        {
+            log_error("mysql_store_result failed: %s\n", mysql_error(m_mysql));
+
+        }
+        return NULL;
 	}
 
 	CResultSet *result_set = new CResultSet(res);	// 存储到CResultSet
@@ -467,8 +471,18 @@ uint32_t CDBConn::GetInsertId()
 }
 
 ////////////////
-CDBPool::CDBPool(const char *pool_name, const char *db_server_ip, uint16_t db_server_port,
-				 const char *username, const char *password, const char *db_name, int max_conn_cnt)
+CDBPool::CDBPool()
+{	
+	initParams& params = initParams::GetInstance();
+	shared_ptr<mysqlParams> mysql = params.getMysqlParams();
+	this->_SetCDBPoolParams(mysql->DBPoolName.c_str(),mysql->HostIp.c_str(),
+							  mysql->HostPort,mysql->UserName.c_str(),mysql->PassWord.c_str(),
+							  mysql->DataBaseName.c_str(),mysql->DBPoolMaxNum);
+	this->_Init();
+}
+
+void CDBPool::_SetCDBPoolParams(const char *pool_name, const char *db_server_ip, uint16_t db_server_port,
+	const char *username, const char *password, const char *db_name, int max_conn_cnt)
 {
 	m_pool_name = pool_name;
 	m_db_server_ip = db_server_ip;
@@ -486,17 +500,15 @@ CDBPool::~CDBPool()
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_abort_request = true;
 	m_cond_var.notify_all();		// 通知所有在等待的
-
 	for (list<CDBConn *>::iterator it = m_free_list.begin(); it != m_free_list.end(); it++)
 	{
 		CDBConn *pConn = *it;
 		delete pConn;
 	}
-
 	m_free_list.clear();
 }
 
-int CDBPool::Init()
+int CDBPool::_Init()
 {
 	// 创建固定最小的连接数量
 	for (int i = 0; i < m_db_cur_conn_cnt; i++)
@@ -515,7 +527,11 @@ int CDBPool::Init()
 	// log_info("db pool: %s, size: %d\n", m_pool_name.c_str(), (int)m_free_list.size());
 	return 0;
 }
-
+CDBPool& CDBPool::GetInstance()
+{
+	static CDBPool instance;
+	return instance;
+}
 /*
  *TODO: 增加保护机制，把分配的连接加入另一个队列，这样获取连接时，如果没有空闲连接，
  *TODO: 检查已经分配的连接多久没有返回，如果超过一定时间，则自动收回连接，放在用户忘了调用释放连接的接口

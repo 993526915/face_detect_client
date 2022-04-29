@@ -1,0 +1,40 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icon/Back.png</file>
+        <file>icon/close2.png</file>
+        <file>icon/go.png</file>
+        <file>icon/login_Account.png</file>
+        <file>icon/login_密码.png</file>
+        <file>icon/Me.png</file>
+        <file>icon/minimum2.png</file>
+        <file>icon/More Circle.png</file>
+        <file>icon/toRight.png</file>
+        <file>icon/victoricon2.png</file>
+        <file>icon/头像.png</file>
+        <file>icon/摄像头.png</file>
+        <file>icon/正确.png</file>
+        <file>icon/错误.png</file>
+        <file>touxiang/beizi.jpg</file>
+        <file>touxiang/blownbear.jpg</file>
+        <file>touxiang/dog.jpg</file>
+        <file>touxiang/duolaameng.jpg</file>
+        <file>touxiang/fenhongbao.jpg</file>
+        <file>touxiang/girl.jpg</file>
+        <file>touxiang/girl2.jpg</file>
+        <file>touxiang/girl3.jpg</file>
+        <file>touxiang/girl4.jpg</file>
+        <file>touxiang/haimianbob.jpg</file>
+        <file>touxiang/icebear.jpg</file>
+        <file>touxiang/paidaxing.jpg</file>
+        <file>touxiang/panda.jpg</file>
+        <file>touxiang/pig.jpg</file>
+        <file>touxiang/shuaya.jpg</file>
+        <file>touxiang/Simpson.jpg</file>
+        <file>touxiang/tom.jpg</file>
+        <file>touxiang/xiaowanzi.jpg</file>
+        <file>touxiang/xiaoxin.jpg</file>
+        <file>touxiang/yazi.jpg</file>
+        <file>icon/xingkong.jpg</file>
+        <file>icon/File.png</file>
+    </qresource>
+</RCC>

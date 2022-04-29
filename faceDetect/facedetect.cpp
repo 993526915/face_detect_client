@@ -15,12 +15,12 @@ static size_t callback(void *ptr, size_t size, size_t nmemb, void *stream) {
 }
 
 
-faceDetect::faceDetect(shared_ptr<QSqlDatabase> db,shared_ptr<initParams> params)
+faceDetect::faceDetect(shared_ptr<initParams> params)
 {
-    m_db = db;
+
     m_params = params;
     m_baiduParams = params->getBaiduAPIParams();
-    std::string faceCascadeFilename = "/home/wzx/detect/faceDetect/haarcascade_frontalface_default.xml";
+    std::string faceCascadeFilename = "/home/wzx/face_detect_client/faceDetect/haarcascade_frontalface_default.xml";
     m_faceDetector = make_shared<CascadeClassifier>();
     //友好错误信息提示
     try{
@@ -34,6 +34,7 @@ faceDetect::faceDetect(shared_ptr<QSqlDatabase> db,shared_ptr<initParams> params
         std::cerr << faceCascadeFilename << ")!" << std::endl;
         exit(1);
     }
+
     m_client = make_shared<aip::Face>(m_baiduParams->app_id, m_baiduParams->api_key, m_baiduParams->secret_key);
 }
 //void faceDetect::readJson()

@@ -14,6 +14,7 @@
 #include"faceDetect/face.h"
 #include"initparams.h"
 #include"DBpool.h"
+#include"socktool.h"
 using namespace std;
 using namespace  cv;
 
@@ -26,31 +27,39 @@ class proComImg :public QObject
 {
     Q_OBJECT
 public:
-    proComImg(shared_ptr<faceDetect> faceDetect,shared_ptr<initParams> params);
+    proComImg();
     void produce();
     void comsume();
-    void detect();
+    void detect(string classnum,string account,int fd);
+    void request();
     void readJson();
     void setIsDetect(bool set);
+    void setIsProduce(bool set);
+    void setIsComsume(bool set);
     bool getIsDetect();
+    vector<Rect> findFace(Mat src);
+    bool m_isdetect;
+    bool m_isproduce;
+    bool m_iscomsume;
+    bool m_isFindFace;
 private:
     shared_ptr<CELLTimestamp> m_timeStamp;
-    shared_ptr<faceDetect> m_faceDetect;
-    shared_ptr<baiduAPIParams>m_baiduParams;
+    shared_ptr<CascadeClassifier> m_faceDetector;
     QMutex m_mutex;
     Mat m_imgBuffer[10];
     vector<Mat> m_detect;
-    bool m_isdetect;
-    bool m_isFindFace;
 #ifdef COMPUTERCAMERA
     VideoCapture cap;
 #else
     shared_ptr<mindCamera> m_camera;
 #endif
 signals:
+    void faceSuccess();
+    void faceFailed();
     void getImage(Mat src);
     void waitkey(int time);
     void detectFace(QString group_id,QString usr_id);
+
 };
 
 class comsumePro : public QThread
@@ -64,6 +73,7 @@ protected:
 
 private:
     shared_ptr<proComImg> m_consume;
+
 };
 
 class producePro : public QThread
@@ -83,14 +93,18 @@ class detectPro : public QThread
 {
     Q_OBJECT
 public:
-    detectPro(shared_ptr<proComImg> p);
+    detectPro(shared_ptr<proComImg> p,shared_ptr<int> fd,string classnum,string account);
 protected:
     void run() Q_DECL_OVERRIDE;
     void stopThread();
 
 private:
     shared_ptr<proComImg> m_detect;
+    shared_ptr<int> m_sockFd;
+    string m_classnum;
+    string m_account;
 };
+
 
 class PrintQPixMap : public QObject
 {

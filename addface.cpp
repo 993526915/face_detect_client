@@ -8,7 +8,6 @@
 #include<QDateTime>
 #include<jsoncpp/json/json.h>
 #include<opencv2/opencv.hpp>
-#include<opencv4/opencv2/face.hpp>
 using namespace cv;
 
 int read_binary(char *filename, char *buffer) {
@@ -36,13 +35,14 @@ int read_binary(char *filename, char *buffer) {
 
 
 
-addFace::addFace(shared_ptr<QSqlDatabase> db,shared_ptr<faceDetect> facedet,shared_ptr<CDBPool> dbPool,QWidget *parent) :
+addFace::addFace(shared_ptr<QSqlDatabase> db,shared_ptr<faceDetect> facedet,shared_ptr<CDBPool> dbPool,shared_ptr<int> fd,QWidget *parent) :
     QDialog(parent),
     ui(new Ui::addFace)
 {
     m_db = db;
     m_CDBPool = dbPool;
     m_faceDetect = facedet;
+    m_socketFd = fd;
     ui->setupUi(this);
 }
 
@@ -127,34 +127,66 @@ void addFace::on_buttonBox_ok_cancel_accepted()
                 }
                 else
                 {
-                    Json::Value json_res;
                     Mat src = imread(m_pictureName.toStdString());
                     qDebug() << "group_id : " << group_id << endl;
                     qDebug() << "user_id : " << user_id << endl;
                     qDebug() << "user_info : " << user_info << endl;
                     qDebug() << "detect_quality : " << detect_quality << endl;
+                    addFaceData *addface = new addFaceData;
+                    addface->m_cmd = ADDFACE;
+                    memcpy(addface->m_classnum,user_id.toStdString().c_str(),user_id.length());
+                    memcpy(addface->m_account,group_id.toStdString().c_str(),group_id.length());
+                    memcpy(addface->m_password,user_info.toStdString().c_str(),user_info.length());
 
-                    int flag = m_faceDetect->add(json_res,src,group_id.toStdString(),
-                                      user_id.toStdString(),user_info.toStdString(),
-                                      detect_quality.toStdString());
+                    memcpy(addface->m_facedata,src.data,sizeof (src));
+                    SockUtil::co_write(*m_socketFd.get(),(const char *)addface,addface->m_dataLength);
 
-                    cout << json_res << endl;
-                    if(flag != 1 || json_res["error_code"].asInt()!= 0)
+//                    Json::Value root;
+//                    Json::Value imageJs;
+//                    Json::Value faceJs;
+//                    //根节点属性
+//                    root["cmd"] = Json::Value(ADDFACE);
+//                    faceJs["group_id"]= Json::Value(group_id.toStdString());
+//                    faceJs["user_id"] = Json::Value(user_id.toStdString());
+//                    faceJs["user_info"] = Json::Value(user_info.toStdString());
+//                    faceJs["detect_quality"] = Json::Value(detect_quality.toStdString());
+//                    imageJs["pic_type"] = Json::Value(src.type());
+//                    imageJs["pic_cols"] = Json::Value(src.cols);
+//                    imageJs["pic_rows"] = Json::Value(src.rows);
+//                    imageJs["pic_data"] = Json::Value((char *)src.data);
+//                    root["image"]=Json::Value(imageJs);
+//                    root["face"]=Json::Value(faceJs);
+//                    string js =  root.toStyledString();
+//                    SockUtil::co_write(*m_socketFd.get(),js.c_str(),sizeof(src));
+                    char ret[1024];
+                    memset(ret,0,sizeof(ret));
+                    SockUtil::co_read(*m_socketFd.get(),ret,sizeof(ret));
+                    Json::Value json_res;
+                    string str = ret;
+                    Json::Reader reader;
+                    if (reader.parse(str, json_res))
                     {
-                        newConnect->Rollback();
-                        qDebug() << "error code----------on_buttonBox_ok_cancel_accepted()" << endl;
+                        cout << json_res << endl;
+                        if(json_res["error_code"].asInt()!= 0)
+                        {
+                            newConnect->Rollback();
+                            qDebug() << "error code----------on_buttonBox_ok_cancel_accepted()" << endl;
+                        }
+                        else
+                        {
+                            emit addTreeItems(group_id,user_id);
+                            newConnect->Commit();
+                        }
+                        string res = "code :" + json_res["error_code"].asString() +"msg :" +json_res["error_msg"].asString();
+                        QMessageBox *message = new QMessageBox(
+                                    QMessageBox::NoIcon,
+                                "调用信息", QString(res.c_str()),
+                                QMessageBox::Yes, NULL);
+                        message->show();
                     }
-                    else
-                    {
-                        emit addTreeItems(group_id,user_id);
-                        newConnect->Commit();
-                    }
-                    string res = "code :" + json_res["error_code"].asString() +"msg :" +json_res["error_msg"].asString();
-                    QMessageBox *message = new QMessageBox(
-                                QMessageBox::NoIcon,
-                            "调用信息", QString(res.c_str()),
-                            QMessageBox::Yes, NULL);
-                    message->show();
+//                    int flag = m_faceDetect->add(json_res,src,group_id.toStdString(),
+//                                      user_id.toStdString(),user_info.toStdString(),
+//                                      detect_quality.toStdString());
                 }
             }
         }
