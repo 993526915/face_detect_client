@@ -56,6 +56,7 @@ loginDialog::loginDialog(QWidget *parent) :
     ui->uiPicture->setPixmap(pixMap);
     CDBPool::GetInstance().RelDBConn(newConnect);
     _initLoginWidget();
+    
 }
 
 loginDialog::~loginDialog()
@@ -165,7 +166,7 @@ void loginDialog::on_loginButton_clicked()
                 ifrem = 1;
             }
             CDBConn *newConnect = CDBPool::GetInstance().GetDBConn();
-            char strSql[100];
+            char strSql[200];
             memset(strSql,0,sizeof(strSql));
             sprintf(strSql,"update user_table set classnum = '%s' , account = '%s' , password = '%s' , ifrem = %d ; ",
                     classnum.c_str(),username.c_str(),password.c_str(),ifrem) ;
@@ -198,9 +199,11 @@ void loginDialog::on_loginButton_clicked()
             if(resData->m_res == LOGIN_SUCCESS)
             {
                 qDebug() << "LOGIN_SUCCESS" ;
+                //this->close();
                 this->close();
                 detectweight * detect = new detectweight(classnum,username,m_socketFd);
                 detect->show();
+                //SockUtil::co_close(*m_socketFd.get());
 
             }
             else if(resData->m_res == LOGIN_NOUSER)

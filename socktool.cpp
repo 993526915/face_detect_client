@@ -61,6 +61,7 @@ int SockUtil::co_write(int fd, const void *buf, size_t nbyte)
     int writeLen = write(fd, buf, nbyte);
     if(writeLen < 0)
     {
+        cout << writeLen<<endl;
         cout << "write error!" << endl;
         return writeLen;
     }
@@ -372,6 +373,7 @@ messageCreateData::messageCreateData()
     memset(m_fromaccount,0,sizeof(m_fromaccount));
     memset(m_toclassnum,0,sizeof(m_toclassnum));
     memset(m_toaccount,0,sizeof(m_toaccount));
+    memset(m_peertouxiang,0,sizeof(m_peertouxiang));
 }
 messageCreateResData::messageCreateResData()
 {
@@ -418,6 +420,7 @@ messageSendRes::messageSendRes()
 {
     this->m_cmd = MESSAGE_SEND_RES;
     this->m_dataLength = sizeof(messageSendRes);
+    res = 0;
 }
 messageHistoryData::messageHistoryData()
 {
@@ -446,6 +449,7 @@ messageRecentSessionData::messageRecentSessionData()
     this->m_dataLength = sizeof(messageRecentSessionData);
     memset(classNum,0,sizeof(classNum));
     memset(account,0,sizeof(account));
+    memset(touxiang,0,sizeof(touxiang));
     memset(lastMessage,0,sizeof(lastMessage));
     lastupdatetime = 0;
 }
@@ -468,4 +472,37 @@ loginTouXiangRes::loginTouXiangRes()
     this->m_cmd = LOGIN_TOUXIANG_RES;
     this->m_dataLength = sizeof(loginTouXiangRes);
     memset(m_touxiang,0,sizeof(m_touxiang));
+}
+
+changeTouXiangData::changeTouXiangData()
+{
+    this->m_cmd = CHANGE_TOUXIANG;
+    this->m_dataLength = sizeof(changeTouXiangData);
+    memset(m_classNum,0,sizeof(m_classNum));
+    memset(m_account,0,sizeof(m_account));
+    memset(m_touxiang,0,sizeof(m_touxiang));
+}
+
+changeTouXiangRes::changeTouXiangRes()
+{
+    this->m_cmd = CHANGE_TOUXIANG_RES;
+    this->m_dataLength = sizeof(changeTouXiangRes);
+    m_res = 0;
+}
+
+getTouXiangData::getTouXiangData()
+{
+    this->m_cmd = GET_TOUXIANG;
+    this->m_dataLength = sizeof(getTouXiangData);
+    memset(m_classNum,0,sizeof(m_classNum));
+    memset(m_account,0,sizeof(m_account));
+    
+}
+
+getTouXiangRes::getTouXiangRes()
+{
+    this->m_cmd = GET_TOUXIANG_RES;
+    this->m_dataLength = sizeof(getTouXiangRes);
+    memset(m_touxiang,0,sizeof(m_touxiang));
+    m_res = 0;
 }

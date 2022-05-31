@@ -93,7 +93,17 @@ enum
     LOGIN_TOUXIANG,
     LOGIN_TOUXIANG_RES,
     LOGIN_TOUXIANG_SUCCESS,
-    LOGIN_TOUXIANG_FAILED
+    LOGIN_TOUXIANG_FAILED,
+//------------------------------------
+    CHANGE_TOUXIANG,
+    CHANGE_TOUXIANG_RES,
+    CHANGE_TOUXIANG_SUCCESS,
+    CHANGE_TOUXIANG_FAILED,
+//------------------------------------
+    GET_TOUXIANG,
+    GET_TOUXIANG_RES,
+    GET_TOUXIANG_SUCCESS,
+    GET_TOUXIANG_FAILED
 };
 //套接字工具类，封装了socket、网络的一些基本操作
 class SockUtil {
@@ -250,6 +260,11 @@ public:
     {
         this->m_cmd = ADDFACE;
         this->m_dataLength = sizeof(addFaceData);
+        memset(m_classnum,0,sizeof(m_classnum));
+        memset(m_account,0,sizeof(m_account));
+        memset(m_password,0,sizeof(m_password));
+        memset(m_facedata,0,sizeof(m_facedata));
+        memset(m_touxiang,0,sizeof(m_touxiang));
     }
     char m_classnum[20];
     char m_account[20];
@@ -258,6 +273,7 @@ public:
     int m_cols;
     int m_rows;
     int m_type;
+    char m_touxiang[50];
 };
 class getGroupData : public dataHeader
 {
@@ -337,6 +353,7 @@ public:
     char m_toclassnum[20];
     char m_fromaccount[20];
     char m_toaccount[20];
+    char m_peertouxiang[50];
 };
 class messageCreateResData :public dataHeader
 {
@@ -434,6 +451,7 @@ public:
     char classNum[20];
     char account[20];
     char lastMessage[1024];
+    char touxiang[50];
     int lastupdatetime;
 };
 
@@ -457,7 +475,40 @@ class loginTouXiangRes :public dataHeader
 {
 public:
     loginTouXiangRes();
-    char m_touxiang[100];
+    char m_touxiang[50];
     int res;
 };
+
+class changeTouXiangData :public dataHeader
+{
+public:
+    changeTouXiangData();
+    char m_classNum[20];
+    char m_account[20];
+    char m_touxiang[50];
+};
+
+class changeTouXiangRes :public dataHeader
+{
+public:
+    changeTouXiangRes();
+    int m_res;
+};
+
+class getTouXiangData :public dataHeader
+{
+public:
+    getTouXiangData();
+    char m_classNum[20];
+    char m_account[20];
+};
+
+class getTouXiangRes :public dataHeader
+{
+public:
+    getTouXiangRes();
+    char m_touxiang[50];
+    int m_res;
+};
+
 #endif

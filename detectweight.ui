@@ -94,7 +94,7 @@ font-size:20px;
        </property>
        <property name="styleSheet">
         <string notr="true">font: 14pt &quot;Ubuntu&quot;;
-color:white;</string>
+color:gray;</string>
        </property>
        <property name="text">
         <string/>
@@ -144,7 +144,7 @@ color:white;</string>
      <string/>
     </property>
     <property name="pixmap">
-     <pixmap>:/icon/正确.png</pixmap>
+     <pixmap resource="resource.qrc">:/icon/正确.png</pixmap>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -171,6 +171,8 @@ color:white;</string>
    </widget>
   </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="resource.qrc"/>
+ </resources>
  <connections/>
 </ui>

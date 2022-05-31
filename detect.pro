@@ -31,11 +31,13 @@ SOURCES += \
     DBpool.cpp \
     comwidget.cpp \
     detectweight.cpp \
+    inform.cpp \
     initparams.cpp \
     logindialog.cpp \
     loginweight.cpp \
     main.cpp \
     procomimg.cpp \
+    qnchatmessage.cpp \
     registor.cpp \
     socktool.cpp \
     userweight.cpp
@@ -44,9 +46,11 @@ HEADERS += \
     DBpool.h \
     comwidget.h \
     detectweight.h \
+    inform.h \
     initparams.h \
     logindialog.h \
     loginweight.h \
+    qnchatmessage.h \
     registor.h \
     timeStamp.h \
     procomimg.h \
@@ -57,6 +61,7 @@ HEADERS += \
 FORMS += \
     comwidget.ui \
     detectweight.ui \
+    inform.ui \
     logindialog.ui \
     loginweight.ui \
     registor.ui \

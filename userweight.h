@@ -16,6 +16,8 @@
 #include<QList>
 #include<QLabel>
 #include<QDebug>
+#include"inform.h"
+#include"DBpool.h"
 using namespace  std;
 namespace Ui {
 class userweight;
@@ -33,6 +35,8 @@ public:
     int initSocket();
     ~userweight();
 private slots:
+    void mousePressEvent(QMouseEvent *event);
+    void changeTouXiang(string touxiangPath);
     void slotDoubleClickItem(QTreeWidgetItem *item, int col);
     void checkOnline();
     void listWidgetDoubleClicked(QModelIndex pos);
@@ -41,12 +45,12 @@ protected :
     void closeEvent(QCloseEvent *event);
 private:
     void _insertTreeWidget(string account,string touxiang,QTreeWidgetItem *thisItem);
-    void _insertListWidget(QString userInfo,QString Msg,QString time);
+    void _insertListWidget(QString userInfo,QString Msg,QString time,QString touxiang);
     Ui::userweight *ui;
+    inform *m_inform;
     string m_classNum;
     string m_account;
-    shared_ptr<faceDetect> m_faceDetect;
-    shared_ptr<initParams> m_params;
+    string m_touXiangPath;
     shared_ptr<int> m_sock;
 };
 

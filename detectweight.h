@@ -30,6 +30,7 @@ private slots:
     void detectFailed();
 private:
     Ui::detectweight *ui;
+    QTimer *timer;
     shared_ptr<proComImg> m_proComImg;
     shared_ptr<comsumePro> m_comThread;
     shared_ptr<producePro> m_proThread;

@@ -7,6 +7,8 @@ registor::registor(QWidget *parent) :
 {
     m_pictureName="";
     ui->setupUi(this);
+    ui->rePassWord->setEchoMode(QLineEdit::Password);
+    ui->PassWord->setEchoMode(QLineEdit::Password);
 }
 
 registor::~registor()
@@ -32,17 +34,11 @@ void registor::mousePressEvent(QMouseEvent *event)
         ui->addPicture->setPixmap(image);
     }
 }
-void registor::on_back_clicked()
-{
-    this->close();
-    loginWeight *login = new loginWeight;
-    login->show();
-}
 
-void registor::on_Continue_clicked()
+void registor::on_registe_clicked()
 {
     int fd = SockUtil::co_createSocket();
-    if (SockUtil::co_connect(fd,"127.0.0.1",8888) == -1) {
+    if(SockUtil::co_connect(fd,"127.0.0.1",8888) == -1) {
         qDebug() << "Error connecting" ;
         return ;
     }
@@ -92,6 +88,8 @@ void registor::on_Continue_clicked()
     addFace->m_cols = src.cols;
     addFace->m_rows = src.rows;
     addFace->m_type = src.type();
+    string touxiang = ":/touxiang/dog.jpg";
+    memcpy(addFace->m_touxiang,touxiang.c_str(),touxiang.length());
     int len = SockUtil::co_write(fd,(const char *)addFace,addFace->m_dataLength);
     if(len < 0)
     {
@@ -105,15 +103,15 @@ void registor::on_Continue_clicked()
         QMessageBox::warning(this, "Warning!", "用户已经存在", QMessageBox::Yes);
         SockUtil::co_close(fd);
         this->close();
-        loginWeight * loginweight = new loginWeight;
-        loginweight->show();
+        loginDialog * logindialog = new loginDialog;
+        logindialog->show();
     }
     else if(addFaceRes->m_res == REGISTER_SUCCESS)
     {
         SockUtil::co_close(fd);
         this->close();
-        loginWeight * loginweight = new loginWeight;
-        loginweight->show();
+        loginDialog * logindialog = new loginDialog;
+        logindialog->show();
     }
 
 }

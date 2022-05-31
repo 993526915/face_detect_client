@@ -83,15 +83,15 @@ font-size:20px;
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>81</width>
+      <width>71</width>
       <height>71</height>
      </rect>
     </property>
+    <property name="cursor">
+     <cursorShape>OpenHandCursor</cursorShape>
+    </property>
     <property name="text">
      <string/>
-    </property>
-    <property name="pixmap">
-     <pixmap resource="resource.qrc">:/new/prefix1/icon/头像.png</pixmap>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -186,7 +186,8 @@ font-size:20px;
       <bool>true</bool>
      </property>
      <property name="styleSheet">
-      <string notr="true">font: 12pt &quot;Ubuntu&quot;;</string>
+      <string notr="true">font: 12pt &quot;Ubuntu&quot;;
+</string>
      </property>
      <property name="verticalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -194,12 +195,15 @@ font-size:20px;
      <property name="tabKeyNavigation">
       <bool>true</bool>
      </property>
+     <column>
+      <property name="text">
+       <string notr="true">1</string>
+      </property>
+     </column>
     </widget>
    </widget>
   </widget>
  </widget>
- <resources>
-  <include location="resource.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

@@ -4,18 +4,18 @@
 #include<QTimer>
 #include<QLineEdit>
 #include<QScrollBar>
+#include<qnchatmessage.h>
 userweight::userweight(QString classnum,QString account,QWidget *parent) :
     QWidget(parent),
     ui(new Ui::userweight)
 {
+    ui->setupUi(this);
     m_classNum = classnum.toStdString();
     m_account = account.toStdString();
-    ui->setupUi(this);
+
     this->setWindowTitle(account);
     ui->name->setText(account);
-
     ui->userTreeWidget->headerItem()->setHidden(true);
-
     int fd = SockUtil::co_createSocket();
     m_sock = make_shared<int>(fd);
     if(!initSocket())
@@ -24,8 +24,19 @@ userweight::userweight(QString classnum,QString account,QWidget *parent) :
         SockUtil::co_offline_close(*m_sock.get(),m_classNum,m_account);
         return ;
     }
+
+
+    getTouXiangData touxiang;
+    memcpy(touxiang.m_classNum,m_classNum.c_str(),m_classNum.length());
+    memcpy(touxiang.m_account,m_account.c_str(),m_account.length());
+    SockUtil::co_write(*m_sock.get(),&touxiang,touxiang.m_dataLength);
+
+    getTouXiangRes touxiangRes;
+    SockUtil::co_read(*m_sock.get(),&touxiangRes,touxiangRes.m_dataLength);
+    ui->pic->setPixmap(QPixmap(touxiangRes.m_touxiang));
+    m_touXiangPath = touxiangRes.m_touxiang;
+
     ui->userTreeWidget->setFrameShape(QListWidget::NoFrame);
-    //ui->listaddFriend->setFrameShape(QListWidget::NoFrame);
 
     ui->userTreeWidget->setStyleSheet("QTreeWidget{background:rgb(238, 247, 255);}"
                                   "QTreeWidget::item:hover{background-color:rgb(200, 230, 250);}"
@@ -94,6 +105,10 @@ userweight::userweight(QString classnum,QString account,QWidget *parent) :
 
     connect(ui->userTreeWidget,SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)), this,SLOT(slotDoubleClickItem(QTreeWidgetItem* ,int)));
 
+    m_inform =  new inform(*m_sock.get(),m_classNum,m_account);
+    void(inform::*Touxiang)(string touXiangPath) = &inform::touXiangPath;
+    connect(userweight::m_inform,Touxiang,this,&userweight::changeTouXiang);
+
     sendOnline();
     initUserTreeWidget();
     initMessageTreeWidget();
@@ -106,13 +121,15 @@ userweight::userweight(QString classnum,QString account,QWidget *parent) :
     connect(timerOnline,SIGNAL(timeout()),this,SLOT(checkOnline()));
     timerOnline->start(5000);
 
-
 }
 void userweight::_insertTreeWidget(string account,string touxiang,QTreeWidgetItem *thisItem)
 {
+
     QWidget *widget=new QWidget;
     QLabel *touLabel = new QLabel(widget);
+    touLabel->setObjectName("touLabel");
     QLabel *namelabel=new QLabel(widget);
+    namelabel->setObjectName("namelabel");
     QLineEdit *idlinet=new QLineEdit(widget);
     idlinet->hide();
     //设置不同控件的样式
@@ -131,14 +148,12 @@ void userweight::_insertTreeWidget(string account,string touxiang,QTreeWidgetIte
     QPixmap fitpixmap = pixmap.scaled(50, 50, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     touLabel->setPixmap(fitpixmap);
     touLabel-> setScaledContents(true);
-    //QTreeWidgetItem *item=new QTreeWidgetItem;
     QSize size = thisItem->sizeHint(0);
     thisItem->setSizeHint(0,QSize(size.width(), 80));
-    //ui->friendTreeWidget->insertTopLevelItem(0,thisItem);
     widget->setSizeIncrement(size.width(), 80);
     ui->userTreeWidget->setItemWidget(thisItem,0, widget);
 }
-void userweight::_insertListWidget(QString userInfo,QString Msg,QString time)
+void userweight::_insertListWidget(QString userInfo,QString Msg,QString time,QString touxiang)
 {
 
     QWidget *widget=new QWidget;
@@ -192,7 +207,7 @@ void userweight::_insertListWidget(QString userInfo,QString Msg,QString time)
     //头像设置
     touLabel->setFixedSize(60,60);
     touLabel->move(10,10);
-    QPixmap pixmap=QPixmap(":/icon/Me.png");
+    QPixmap pixmap=QPixmap(touxiang);
     QPixmap fitpixmap = pixmap.scaled(50, 50, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     touLabel->setPixmap(fitpixmap);
     touLabel-> setScaledContents(true);
@@ -228,7 +243,8 @@ void userweight::initMessageTreeWidget()
             sprintf(ntime,"%02d : %02d",curr_tm->tm_hour,curr_tm->tm_min);
             QString userInfo = QString(temp.classNum) + ":"+QString(temp.account);
             //qDebug() << QString(ntime);
-             _insertListWidget(userInfo,QString(temp.lastMessage),QString(ntime));
+            QString peerTouXiang = temp.touxiang;
+             _insertListWidget(userInfo,QString(temp.lastMessage),QString(ntime),peerTouXiang);
              messageRecentSessionResData sessionRes;
              sessionRes.m_count = 0;
              sessionRes.res = MESSAGR_RECENT_SESSION_SUCCESS;
@@ -261,10 +277,21 @@ void userweight::listWidgetDoubleClicked(QModelIndex pos)
             QStringList l = str.split(':');
             string classNum = l[0].toStdString();
             string account = l[1].toStdString();
-            comwidget * comm = new comwidget(*m_sock.get(),m_classNum,classNum,m_account,account);
-            string title = classNum+':'+account;
-            comm->show();
-            comm->setWindowTitle(QString(title.c_str()));
+            getTouXiangData touxiang;
+            memcpy(touxiang.m_account,account.c_str(),account.length());
+            memcpy(touxiang.m_classNum,classNum.c_str(),classNum.length());
+            SockUtil::co_write(*m_sock.get(),&touxiang,touxiang.m_dataLength);
+
+            getTouXiangRes touxiangRes;
+            SockUtil::co_read(*m_sock.get(),&touxiangRes,touxiangRes.m_dataLength);
+            if(touxiangRes.m_res == GET_TOUXIANG_SUCCESS)
+            {
+                string sendTouXiangPath = touxiangRes.m_touxiang;
+                comwidget * comm = new comwidget(*m_sock.get(),m_classNum,classNum,m_account,account,m_touXiangPath,sendTouXiangPath);
+                string title = classNum+':'+account;
+                comm->show();
+                comm->setWindowTitle(QString(title.c_str()));
+            }
             break;
         }
     }
@@ -335,6 +362,7 @@ int userweight::initSocket()
 }
 void userweight::initUserTreeWidget()
 {
+    ui->userTreeWidget->clear();
     getGroupData *group = new getGroupData;
     SockUtil::co_write(*m_sock.get(),group,group->m_dataLength);
 
@@ -370,6 +398,7 @@ void userweight::initUserTreeWidget()
                     string user_id = user_id_list[j]["account"].asString();
                     string touxiang = user_id_list[j]["touxiang"].asString();
                     QTreeWidgetItem *userItem = new QTreeWidgetItem(groupItem,QStringList(QString(user_id.c_str())));
+                    userItem->setSizeHint(0,QSize(10,10));
                     //userItem->setIcon(0,QIcon(QString(":/icon/Me.png")));
                     _insertTreeWidget(user_id,touxiang,userItem);
                     groupItem->addChild(userItem);
@@ -382,25 +411,40 @@ void userweight::initUserTreeWidget()
 
 void userweight::slotDoubleClickItem(QTreeWidgetItem *item, int col) {
     if(item->parent()==NULL) return ;
-    messageCreateData messageCreate;
-    memcpy(messageCreate.m_fromclassnum,m_classNum.c_str(),m_classNum.length());
-    memcpy(messageCreate.m_fromaccount,m_account.c_str(),m_account.length());
-    memcpy(messageCreate.m_toclassnum,item->parent()->text(0).toStdString().c_str(),item->parent()->text(0).length());
-    memcpy(messageCreate.m_toaccount,item->text(0).toStdString().c_str(),item->text(0).length());
-    SockUtil::co_write(*m_sock.get(),&messageCreate,messageCreate.m_dataLength);
+    string toClassNum = item->parent()->text(0).toStdString();
+    string toAccount = item->text(0).toStdString();
+    getTouXiangData touxiang;
+    memcpy(touxiang.m_account,toAccount.c_str(),toAccount.length());
+    memcpy(touxiang.m_classNum,toClassNum.c_str(),toClassNum.length());
+    SockUtil::co_write(*m_sock.get(),&touxiang,touxiang.m_dataLength);
 
-    messageCreateResData *messageCreateRes = new messageCreateResData;
-    SockUtil::co_read(*m_sock.get(),messageCreateRes,messageCreateRes->m_dataLength);
-    if(messageCreateRes->res == MESSAGE_CREATE_SUCCESS)
+    getTouXiangRes touxiangRes;
+    SockUtil::co_read(*m_sock.get(),&touxiangRes,touxiangRes.m_dataLength);
+    if(touxiangRes.m_res == GET_TOUXIANG_SUCCESS)
     {
-        comwidget *communicate = new comwidget(*m_sock.get(),m_classNum,item->parent()->text(0).toStdString(),m_account,item->text(0).toStdString());
-        communicate->show();
-        communicate->setWindowTitle(item->text(0));
+        string peerTouXiang = touxiangRes.m_touxiang;
+        messageCreateData messageCreate;
+        memcpy(messageCreate.m_fromclassnum,m_classNum.c_str(),m_classNum.length());
+        memcpy(messageCreate.m_fromaccount,m_account.c_str(),m_account.length());
+        memcpy(messageCreate.m_toclassnum,toClassNum.c_str(),toClassNum.length());
+        memcpy(messageCreate.m_toaccount,toAccount.c_str(),toAccount.length());
+        memcpy(messageCreate.m_peertouxiang,peerTouXiang.c_str(),peerTouXiang.length());
+        SockUtil::co_write(*m_sock.get(),&messageCreate,messageCreate.m_dataLength);
+
+        messageCreateResData *messageCreateRes = new messageCreateResData;
+        SockUtil::co_read(*m_sock.get(),messageCreateRes,messageCreateRes->m_dataLength);
+        if(messageCreateRes->res == MESSAGE_CREATE_SUCCESS)
+        {
+            comwidget *communicate = new comwidget(*m_sock.get(),m_classNum,toClassNum,m_account,toAccount,m_touXiangPath,peerTouXiang);
+            communicate->show();
+            communicate->setWindowTitle(item->text(0));
+        }
+        else
+        {
+            QMessageBox::warning(this, "Warning!", "创建对话失败", QMessageBox::Yes);
+        }
     }
-    else
-    {
-        QMessageBox::warning(this, "Warning!", "创建对话失败", QMessageBox::Yes);
-    }
+
 }
 userweight::~userweight()
 {
@@ -412,4 +456,44 @@ void userweight::closeEvent(QCloseEvent * event)
 {
     qDebug() << "closeEvent";
     SockUtil::co_offline_close(*m_sock.get(),m_classNum,m_account);
+}
+void userweight::mousePressEvent(QMouseEvent *event)
+{
+
+    if(event->x() > ui->pic->pos().x() &&
+       event->x() < ui->pic->pos().x()+ui->pic->width() &&
+       event->y() > ui->pic->pos().y() &&
+       event->y() < ui->pic->pos().y()+ui->pic->width() &&
+       event->button() == Qt::LeftButton)
+    {
+//        m_inform =  new inform(*m_sock.get(),m_classNum,m_account);
+        m_inform->show();
+    }
+}
+
+void userweight::changeTouXiang(string touxiangPath)
+{
+    qDebug() << "------------" << QString(touxiangPath.c_str());
+    m_touXiangPath = touxiangPath;
+    ui->pic->setPixmap(QPixmap(touxiangPath.c_str()));
+    initUserTreeWidget();
+    initMessageTreeWidget();
+    int count = ui->userTreeWidget->topLevelItemCount();
+//    for(int i=0;i<count;i++)
+//    {
+//        QTreeWidgetItem *item = ui->userTreeWidget->takeTopLevelItem(i);
+//        if(item->text(0).toStdString() == m_classNum)
+//        {
+//            int childCount = item->childCount();
+//            for(int j=0;j<childCount;j++)
+//            {
+//                QTreeWidgetItem *itemchild = item->child(j);
+//                if(itemchild->text(0).toStdString() ==m_account)
+//                {
+//                    _insertTreeWidget(m_account,touxiangPath,itemchild);
+//                    break;
+//                }
+//            }
+//        }
+//    }
 }

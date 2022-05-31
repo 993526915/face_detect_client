@@ -23,9 +23,8 @@ public:
 protected:
     void mousePressEvent(QMouseEvent *event);
 private slots:
-    void on_back_clicked();
 
-    void on_Continue_clicked();
+    void on_registe_clicked();
 
 private:
     Ui::registor *ui;

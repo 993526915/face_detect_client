@@ -37,7 +37,7 @@ detectweight::detectweight(string classnum,string account,shared_ptr<int> fd,QWi
     ui->right->setVisible(false);
 
     //时间的实时显示（添加信号槽的连接）
-   QTimer *timer =new QTimer(this);
+   timer =new QTimer(this);
    connect(timer,SIGNAL(timeout()),this,SLOT(timerUpdate()));
    timer->start(1000);
 
@@ -49,10 +49,14 @@ void detectweight::paintEvent(QPaintEvent *)
     int y1 = ui->picture->pos().y();
     painter.drawPixmap(x1,y1,ui->picture->width(),ui->picture->height(),m_picture);
 }
+
 detectweight::~detectweight()
 {
+    SockUtil::co_close(*m_sockFd.get());
     delete ui;
+    delete timer;
 }
+
 void detectweight::detectSuccess()
 {
     static int successNum = 0;
@@ -73,6 +77,7 @@ void detectweight::detectSuccess()
         m_proComImg->setIsDetect(false);
         m_proComImg->setIsProduce(false);
         m_proComImg->setIsComsume(false);
+        string s = "王则";
         userweight *user = new userweight(QString(m_classnum.c_str()),QString(m_account.c_str()));
         user->show();
     }
